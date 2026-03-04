@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DompetX Webhook Logs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .filter-section {
+            padding: 0 30px 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-input label {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .filter-input input, .filter-input select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .logs-table {
+            padding: 0 30px 30px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .event-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .event-type.deposit {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .event-type.withdrawal {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status.paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .payload-cell {
+            max-width: 300px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .payload-preview {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .payload-preview:hover {
+            background: #e9ecef;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+            margin: 15px 0 0;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 DompetX Webhook Monitor</h1>
+            <p>Real-time monitoring for payment webhooks</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Webhooks</h3>
+                <div class="value" id="totalCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Deposit Events</h3>
+                <div class="value" id="depositCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Withdrawal Events</h3>
+                <div class="value" id="withdrawalCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Paid Status</h3>
+                <div class="value" id="paidCount">0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="refreshLogs()">
+                🔄 Refresh Logs
+            </button>
+            <button class="btn btn-success" onclick="sendTestWebhook()">
+                🚀 Send Test Webhook
+            </button>
+            <button class="btn btn-danger" onclick="clearLogs()">
+                🗑️ Clear Logs
+            </button>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-input">
+                <label>Event Type</label>
+                <select id="filterEventType" onchange="applyFilters()">
+                    <option value="all">All Events</option>
+                    <option value="deposit">Deposit</option>
+                    <option value="withdrawal">Withdrawal</option>
+                </select>
+            </div>
+            <div class="filter-input">
+                <label>Payment Status</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="all">All Status</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div class="filter-input">
+                <label>Search Reference/ID</label>
+                <input type="text" id="searchInput" placeholder="Search..." onkeyup="applyFilters()">
+            </div>
+        </div>
+
+        <div class="logs-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Event Type</th>
+                        <th>Payment ID</th>
+                        <th>Amount</th>
+                        <th>Currency</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                        <th>Payload</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <tr>
+                        <td colspan="8" class="loading">Loading logs...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for full payload -->
+    <div id="payloadModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Full Payload</h3>
+            <pre id="fullPayload"></pre>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+        let filteredLogs = [];
+
+        // Load logs on page load
+        document.addEventListener('DOMContentLoaded', refreshLogs);
+
+        // Refresh logs every 10 seconds
+        setInterval(refreshLogs, 10000);
+
+        async function refreshLogs() {
+            try {
+                const response = await fetch('/api/webhook-logs');
+                logs = await response.json();
+                applyFilters();
+                updateStats();
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                document.getElementById('logsBody').innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            Error loading logs. Make sure the server is running.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function applyFilters() {
+            const eventType = document.getElementById('filterEventType').value;
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredLogs = logs.filter(log => {
+                if (eventType !== 'all' && log.payload?.eventType !== eventType) return false;
+                
+                const paymentStatus = log.payload?.data?.status;
+                if (status !== 'all' && paymentStatus !== status) return false;
+                
+                if (search) {
+                    const reference = log.payload?.data?.reference || '';
+                    const paymentId = log.payload?.paymentId || '';
+                    if (!reference.toLowerCase().includes(search) && !paymentId.toLowerCase().includes(search)) return false;
+                }
+                
+                return true;
+            });
+
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logsBody');
+            
+            if (filteredLogs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            No webhook logs found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredLogs.map(log => {
+                const payload = log.payload || {};
+                const data = payload.data || {};
+                
+                const eventType = payload.eventType || '-';
+                const paymentId = payload.paymentId || '-';
+                const amount = data.amount || '-';
+                const currency = data.currency || '-';
+                const status = data.status || '-';
+                const reference = data.reference || '-';
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="timestamp">${new Date(log.timestamp).toLocaleString()}</div>
+                        </td>
+                        <td>
+                            <span class="event-type ${eventType}">${eventType}</span>
+                        </td>
+                        <td>${paymentId.substring(0, 8)}...</td>
+                        <td>${amount}</td>
+                        <td>${currency}</td>
+                        <td>
+                            <span class="status ${status}">${status}</span>
+                        </td>
+                        <td>${reference}</td>
+                        <td>
+                            <div class="payload-cell">
+                                <div class="payload-preview" onclick='showPayload(${JSON.stringify(JSON.stringify(payload))})'>
+                                    View Payload
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = logs.length;
+            
+            const depositCount = logs.filter(log => log.payload?.eventType === 'deposit').length;
+            document.getElementById('depositCount').textContent = depositCount;
+            
+            const withdrawalCount = logs.filter(log => log.payload?.eventType === 'withdrawal').length;
+            document.getElementById('withdrawalCount').textContent = withdrawalCount;
+            
+            const paidCount = logs.filter(log => log.payload?.data?.status === 'paid').length;
+            document.getElementById('paidCount').textContent = paidCount;
+        }
+
+        function showPayload(payload) {
+            const formattedPayload = JSON.stringify(JSON.parse(payload), null, 2);
+            document.getElementById('fullPayload').textContent = formattedPayload;
+            document.getElementById('payloadModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('payloadModal').style.display = 'none';
+        }
+
+        async function sendTestWebhook() {
+            try {
+                const response = await fetch('/test/send-webhook', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    alert('Test webhook sent successfully!');
+                    refreshLogs();
+                } else {
+                    alert('Failed to send test webhook');
+                }
+            } catch (error) {
+                console.error('Error sending test webhook:', error);
+                alert('Error sending test webhook');
+            }
+        }
+
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                logs = [];
+                filteredLogs = [];
+                renderLogs();
+                updateStats();
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('payloadModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
